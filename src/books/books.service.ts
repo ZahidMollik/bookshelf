@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -8,11 +9,14 @@ import { UpdateBookDto } from './dto/update-book.dto';
 import { Repository } from 'typeorm';
 import { Book } from './entities/book.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Author } from 'src/authors/entities/author.entity';
 
 @Injectable()
 export class BooksService {
   constructor(
     @InjectRepository(Book) private readonly bookRepository: Repository<Book>,
+    @InjectRepository(Author)
+    private readonly authorRepository: Repository<Author>,
   ) {}
   async create(createBookDto: CreateBookDto) {
     const existingBook = await this.bookRepository.findOne({
@@ -23,12 +27,13 @@ export class BooksService {
     if (existingBook) {
       throw new ConflictException('This book already exist in the system');
     }
-    const book = this.bookRepository.create(createBookDto);
+    const author = await this.preloadAuthor(createBookDto);
+    const book = this.bookRepository.create({ ...createBookDto, author });
     return await this.bookRepository.save(book);
   }
 
   async findAll() {
-    return await this.bookRepository.find();
+    return await this.bookRepository.find({ relations: { author: true } });
   }
 
   async findOne(id: number) {
@@ -56,5 +61,19 @@ export class BooksService {
       throw new NotFoundException('Book with this id is not found to delete');
     }
     return await this.bookRepository.delete(id);
+  }
+  private async preloadAuthor(createBookDto: CreateBookDto) {
+    if (createBookDto.author.name) {
+      const existingauthor = await this.authorRepository.findOne({
+        where: { name: createBookDto.author.name },
+      });
+      if (existingauthor) {
+        return existingauthor;
+      }
+      const author = this.authorRepository.create(createBookDto.author);
+      return await this.authorRepository.save(author);
+    } else {
+      throw new BadRequestException('Author information is required');
+    }
   }
 }
