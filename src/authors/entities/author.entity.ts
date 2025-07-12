@@ -7,6 +7,10 @@ export class Author {
   id: number;
   @Column({ unique: true })
   name: string;
-  @OneToMany(() => Book, (book) => book.author, { eager: true })
+  @Column({ nullable: true })
+  bio: string;
+  @OneToMany(() => Book, (book) => book.author, {
+    cascade: true,
+  })
   books: Book[];
 }

@@ -12,14 +12,18 @@ export class Book {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ unique: true })
   title: string;
-  @Column({ nullable: true })
+
+  @Column()
   description: string;
-  @Column({ type: Date, nullable: true })
+
+  @Column({ type: Date })
   publishAt: Date;
 
-  @ManyToOne(() => Author, (author) => author.books, { cascade: true })
+  @ManyToOne(() => Author, (author) => author.books, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   author: Author;
 }
