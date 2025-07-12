@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateBookDto } from './dto/create-book.dto';
+import { CreateBookWithAuthorDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { Repository } from 'typeorm';
 import { Book } from './entities/book.entity';
@@ -18,17 +18,25 @@ export class BooksService {
     @InjectRepository(Author)
     private readonly authorRepository: Repository<Author>,
   ) {}
-  async create(createBookDto: CreateBookDto) {
+  async create(createBookWithAuthorDto: CreateBookWithAuthorDto) {
     const existingBook = await this.bookRepository.findOne({
       where: {
-        title: createBookDto.title,
+        title: createBookWithAuthorDto.title,
       },
     });
     if (existingBook) {
       throw new ConflictException('This book already exist in the system');
     }
-    const author = await this.preloadAuthor(createBookDto);
-    const book = this.bookRepository.create({ ...createBookDto, author });
+    const author = await this.authorRepository.findOne({
+      where: { id: createBookWithAuthorDto.authorId },
+    });
+    if (!author) {
+      throw new BadRequestException('Author with this id is not found');
+    }
+    const book = this.bookRepository.create({
+      ...createBookWithAuthorDto,
+      author,
+    });
     return await this.bookRepository.save(book);
   }
 
@@ -37,7 +45,10 @@ export class BooksService {
   }
 
   async findOne(id: number) {
-    const book = await this.bookRepository.findOne({ where: { id } });
+    const book = await this.bookRepository.findOne({
+      where: { id },
+      relations: { author: true },
+    });
     if (!book) {
       throw new NotFoundException('This Book is not found in the system');
     }
@@ -61,19 +72,5 @@ export class BooksService {
       throw new NotFoundException('Book with this id is not found to delete');
     }
     return await this.bookRepository.delete(id);
-  }
-  private async preloadAuthor(createBookDto: CreateBookDto) {
-    if (createBookDto.author.name) {
-      const existingauthor = await this.authorRepository.findOne({
-        where: { name: createBookDto.author.name },
-      });
-      if (existingauthor) {
-        return existingauthor;
-      }
-      const author = this.authorRepository.create(createBookDto.author);
-      return await this.authorRepository.save(author);
-    } else {
-      throw new BadRequestException('Author information is required');
-    }
   }
 }

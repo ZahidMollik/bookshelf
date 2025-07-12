@@ -26,17 +26,18 @@ export class AuthorsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authorsService.findOne(+id);
+  findOne(@Param('id') id: number) {
+    return this.authorsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthorDto: UpdateAuthorDto) {
-    return this.authorsService.update(+id, updateAuthorDto);
+  update(@Param('id') id: number, @Body() updateAuthorDto: UpdateAuthorDto) {
+    return this.authorsService.update(id, updateAuthorDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authorsService.remove(+id);
+  remove(@Param('id') id: number) {
+    const response = this.authorsService.remove(id);
+    return response;
   }
 }
